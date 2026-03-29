@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>AI Fabric Defect Detection</title>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+background:#f4f4f4;
+}
+
+.container{
+margin-top:60px;
+}
+
+video{
+border:3px solid black;
+}
+
+button{
+padding:10px 20px;
+background:#4CAF50;
+color:white;
+border:none;
+margin-top:10px;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>AI Fabric Defect Detection</h1>
+
+<h3>Capture Fabric Image</h3>
+
+<video id="camera" width="400" autoplay></video>
+
+<br>
+
+<button onclick="capture()">Capture Image</button>
+
+<form id="uploadForm" action="/predict" method="POST" enctype="multipart/form-data">
+<input type="file" id="imageInput" name="image" hidden>
+<button type="submit">Detect Defect</button>
+</form>
+
+{% if result %}
+
+<h2>Detection Result</h2>
+
+<img src="{{ url_for('static', filename='uploads/' + result) }}" width="400">
+
+{% endif %}
+
+</div>
+
+<script>
+
+let video = document.getElementById("camera");
+
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    video.srcObject = stream;
+});
+
+function capture(){
+
+let canvas = document.createElement("canvas");
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+
+let ctx = canvas.getContext("2d");
+ctx.drawImage(video,0,0);
+
+canvas.toBlob(function(blob){
+
+let file = new File([blob], "capture.jpg");
+
+let container = new DataTransfer();
+container.items.add(file);
+
+document.getElementById("imageInput").files = container.files;
+
+});
+
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+path: C:\Users\Parthipan\Downloads\fabric defect project\FD_Dataset\FD_Dataset\dataset
+
+train: train/images
+val: valid/images
+
+names:
+  0: hole
+  1: stain
+  2: knot
+  3: broken_yarn
+  4: oil_spot

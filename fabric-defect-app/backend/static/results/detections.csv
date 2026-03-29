@@ -1,0 +1,12 @@
+Timestamp,Filename,Defects Detected,Defect Count
+2026-03-29 18:32:06,95bb5ad4-2a82-4408-8968-ea733a60c918.jpg,hole,1
+2026-03-29 18:32:21,a4c36150-22a5-4500-9a9e-c01363dc41fe.jpg,No Defect,0
+2026-03-29 18:34:07,e92ac35e-c76a-472f-95fd-554fb7ba1dd3.jpg,No Defect,0
+2026-03-29 18:35:42,2c8a7187-9c76-45da-9c29-fc7a75328c30.jpg,No Defect,0
+2026-03-29 18:36:39,57941cf0-5b6d-47b6-9ac0-e6bc76045b63.jpg,broken_yarn,1
+2026-03-29 18:50:26,3ce089a0-d735-40cf-bf2d-1b1106b5bcfc.jpg,No Defect,0
+2026-03-29 18:50:47,1bed0660-fd25-43f4-8901-798d4f7d58e6.jpg,"knot, knot",2
+2026-03-29 18:51:09,70d769db-86b4-42c5-aa4b-ae6f86cdbab9.jpg,hole,1
+2026-03-29 18:51:30,6e2128aa-df8b-4918-b135-17b05f4efe5c.jpg,hole,1
+2026-03-29 18:51:43,76c0b815-2dae-4ca4-9c9e-2a79b22a2e39.jpg,broken_yarn,1
+2026-03-29 18:52:26,e877ae9e-b445-4e10-bdfd-01b496defe11.jpg,stain,1

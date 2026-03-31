@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './screens/HomeScreen';
 import ResultScreen from './screens/ResultScreen';
+import HistoryScreen from './screens/HistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,11 @@ export default function App() {
               name="Result" 
               component={ResultScreen} 
               options={{ title: 'Analysis Result' }} 
+          />
+          <Stack.Screen 
+              name="Detections" 
+              component={HistoryScreen} 
+              options={{ title: 'Detections' }} 
           />
         </Stack.Navigator>
       </NavigationContainer>

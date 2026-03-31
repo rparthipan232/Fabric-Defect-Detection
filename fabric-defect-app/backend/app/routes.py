@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 import shutil
 import os
 import uuid
+import cv2
+from fastapi.responses import JSONResponse, StreamingResponse
 from app.model import detector
 from app.utils import save_result_image, log_detection_to_csv, extract_defects_info, encode_image_base64
 
@@ -30,8 +32,8 @@ async def predict_defect(file: UploadFile = File(...)):
         with open(upload_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # Perform detection
-        results = detector.predict(upload_path)
+        # Perform detection with lower confidence to catch subtle defects
+        results = detector.model(upload_path, conf=0.15)
         
         # Process results
         defects = extract_defects_info(results)
@@ -61,3 +63,66 @@ async def predict_defect(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/live_scan")
+async def live_scan(file: UploadFile = File(...)):
+    try:
+        # 1. Read directly into memory (NO saving to disk!)
+        contents = await file.read()
+        import numpy as np
+        # Convert to OpenCV image
+        nparr = np.frombuffer(contents, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return JSONResponse({"success": False, "error": "Invalid image data"})
+
+        # 2. Run detector with high sensitivity
+        results = detector.model(frame, verbose=False, conf=0.15)
+        
+        # 3. Extract boxes
+        defects = extract_defects_info(results)
+        
+        return {
+            "success": True,
+            "defects": defects,
+            "has_defects": len(defects) > 0
+        }
+    except Exception as e:
+        print(f"Live Scan Error: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@router.get("/video_feed")
+def video_feed():
+    def generate_frames():
+        # Start reading the server's local camera (the same way your old camera.py did)
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            print("Cannot open camera")
+            return
+            
+        while True:
+            success, frame = cap.read()
+            if not success:
+                break
+                
+            # Perform YOLO live detection on the frame
+            if detector.model is not None:
+                results = detector.model(frame, verbose=False)
+                for r in results:
+                    frame = r.plot()  # Draw bounding boxes
+            
+            # Encode frame explicitly to JPEG
+            ret, buffer = cv2.imencode('.jpg', frame)
+            if not ret:
+                continue
+                
+            # Yield the frame to the active stream
+            frame_bytes = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                   
+        cap.release()
+
+    # Returns the multipart MJPEG stream that browsers and React Native Image components can render natively
+    return StreamingResponse(generate_frames(), media_type="multipart/x-mixed-replace; boundary=frame")

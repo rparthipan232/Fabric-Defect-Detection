@@ -37,9 +37,14 @@ def extract_defects_info(results):
         confidence = float(box.conf[0].item())
         class_name = result.names[class_id]
         
+        # Get coordinates in [x1, y1, x2, y2] format
+        # and normalize them if needed (optional, but raw pixels are fine if we know resolution)
+        coords = box.xyxyn[0].tolist() # Normalized coordinates [0, 1]
+        
         defects.append({
             "name": class_name,
-            "confidence": round(confidence, 2)
+            "confidence": round(confidence, 2),
+            "box": coords # [x1, y1, x2, y2]
         })
     return defects
     

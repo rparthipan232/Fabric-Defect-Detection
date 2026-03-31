@@ -43,11 +43,40 @@ export const uploadImageForDetection = async (imageUri) => {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            timeout: 15000, // 15 seconds timeout
         });
 
         return response.data;
     } catch (error) {
-        console.error("API Error: ", error);
+        if (error.code === 'ECONNABORTED') {
+            console.error("API Timeout: Server took too long to respond.");
+        } else if (error.message === 'Network Error') {
+            console.error("API Network Error: Check if your Phone and PC are on the SAME Wi-Fi and Firewall is OFF.");
+        } else {
+            console.error("API Error: ", error.message);
+        }
+        throw error;
+    }
+};
+
+export const liveScanFrame = async (imageUri) => {
+    try {
+        const formData = new FormData();
+        const filename = 'frame.jpg';
+        
+        formData.append('file', {
+            uri: imageUri,
+            name: filename,
+            type: 'image/jpeg',
+        });
+
+        const response = await axios.post(`${API_BASE_URL}/live_scan`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 5000, 
+        });
+
+        return response.data;
+    } catch (error) {
         throw error;
     }
 };

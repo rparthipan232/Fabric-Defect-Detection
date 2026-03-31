@@ -2,15 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraPermissions } from 'expo-camera';
+import * as MediaLibrary from 'expo-media-library';
 import UploadButton from '../components/UploadButton';
 import CustomCameraView from '../components/CameraView';
-import { uploadImageForDetection } from '../services/api';
+import { uploadImageForDetection, liveScanFrame } from '../services/api';
 
 export default function HomeScreen({ navigation }) {
     const [imageUri, setImageUri] = useState(null);
     const [isCameraVisible, setIsCameraVisible] = useState(false);
+    const [isLiveScan, setIsLiveScan] = useState(false);
     const [permission, requestPermission] = useCameraPermissions();
+    const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
     const [loading, setLoading] = useState(false);
+    const [liveScanResult, setLiveScanResult] = useState(null);
+    const [sessionHistory, setSessionHistory] = useState([]);
 
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
@@ -24,20 +29,66 @@ export default function HomeScreen({ navigation }) {
         }
     };
 
-    const requestCameraAndShow = async () => {
+    const requestCamera = async (live = false) => {
         if (!permission?.granted) {
             const result = await requestPermission();
             if (!result.granted) {
-                Alert.alert("Permission Required", "Camera access is needed to take a picture.");
+                Alert.alert("Permission Required", "Camera access is needed.");
                 return;
             }
         }
+        
+        if (live && !mediaPermission?.granted) {
+            const result = await requestMediaPermission();
+            if (!result.granted) {
+                Alert.alert("Permission Required", "Storage access is needed to save detected defects.");
+                return;
+            }
+        }
+
+        setIsLiveScan(live);
+        setLiveScanResult(null);
+        setSessionHistory([]); // Clear history for new session
         setIsCameraVisible(true);
+    };
+
+    const stopLiveScan = () => {
+        setIsCameraVisible(false);
+        setIsLiveScan(false);
+        
+        // Always go to the detections history page to see what was captured
+        navigation.navigate('Detections', { 
+            sessionHistory: sessionHistory
+        });
     };
 
     const handlePictureTaken = (uri) => {
         setImageUri(uri);
         setIsCameraVisible(false);
+    };
+
+    const handleAutoFrame = async (uri) => {
+        try {
+            const responseData = await liveScanFrame(uri);
+            if (responseData.success) {
+                setLiveScanResult(responseData);
+                
+                if (responseData.has_defects) {
+                    // Record detections with timestamps for the final list
+                    const timestamp = new Date().toLocaleTimeString();
+                    const newDetections = responseData.defects.map(d => ({
+                        ...d,
+                        time: timestamp,
+                        id: Math.random().toString(36).substr(2, 9)
+                    }));
+                    
+                    setSessionHistory(prev => [...newDetections, ...prev]);
+                    console.log(`Defect Found: ${responseData.defects[0].name}`);
+                }
+            }
+        } catch (error) {
+            console.error("Auto scan API error:", error);
+        }
     };
 
     const handleDetect = async () => {
@@ -58,20 +109,27 @@ export default function HomeScreen({ navigation }) {
 
         } catch (error) {
             setLoading(false);
-            Alert.alert("Error", "Failed to connect to the detection server.");
-            console.error(error);
+            Alert.alert("Error", "Failed to connect to the server.");
         }
     };
 
     if (isCameraVisible) {
-        return <CustomCameraView onPictureTaken={handlePictureTaken} onCancel={() => setIsCameraVisible(false)} />;
+        return (
+            <CustomCameraView 
+                onPictureTaken={handlePictureTaken} 
+                isLiveScan={isLiveScan}
+                onAutoFrame={handleAutoFrame}
+                onCancel={isLiveScan ? stopLiveScan : () => setIsCameraVisible(false)}
+                lastResult={liveScanResult}
+            />
+        );
     }
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Fabric Defect Detection</Text>
-                <Text style={styles.subtitle}>Upload or capture an image of fabric</Text>
+                <Text style={styles.subtitle}>AI-Powered Fabric Quality Control</Text>
             </View>
 
             <View style={styles.imageContainer}>
@@ -86,8 +144,14 @@ export default function HomeScreen({ navigation }) {
 
             <View style={styles.controls}>
                 <UploadButton 
-                    title="📸 Capture Image" 
-                    onPress={requestCameraAndShow} 
+                    title="🔴 Start Live Scanning" 
+                    onPress={() => requestCamera(true)} 
+                    style={styles.liveBtn}
+                />
+
+                <UploadButton 
+                    title="📸 Single Capture" 
+                    onPress={() => requestCamera(false)} 
                     style={styles.button}
                 />
                 
@@ -98,7 +162,7 @@ export default function HomeScreen({ navigation }) {
                 />
 
                 <UploadButton 
-                    title="🔍 Detect Defects" 
+                    title="🔍 Analyze Current Image" 
                     onPress={handleDetect} 
                     disabled={!imageUri || loading}
                     style={[styles.detectBtn, (!imageUri || loading) && styles.disabledBtn]}
@@ -139,18 +203,13 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: 300,
+        height: 250,
         backgroundColor: '#E2E8F0',
         borderRadius: 16,
         overflow: 'hidden',
-        marginBottom: 30,
+        marginBottom: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 5,
     },
     image: {
         width: '100%',
@@ -168,13 +227,17 @@ const styles = StyleSheet.create({
     controls: {
         width: '100%',
     },
+    liveBtn: {
+        backgroundColor: '#E53E3E',
+        marginBottom: 10,
+    },
     button: {
         backgroundColor: '#CBD5E0',
         marginBottom: 10,
     },
     detectBtn: {
         backgroundColor: '#4C6EF5',
-        marginTop: 20,
+        marginTop: 10,
         paddingVertical: 18,
     },
     disabledBtn: {

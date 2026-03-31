@@ -6,48 +6,56 @@ export default function ResultScreen({ route }) {
 
     // Fast API returns base64 image or null
     const resultImageBase64 = resultData.result_image_base64;
-    const hasDefects = resultData.has_defects;
+    const isHistory = resultData.isHistory;
     const defects = resultData.defects || [];
+    const hasDefects = defects.length > 0;
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Detection Result</Text>
+                <Text style={styles.title}>{isHistory ? 'Scan Session Summary' : 'Detection Result'}</Text>
             </View>
 
             <View style={styles.statusBox}>
                 {hasDefects ? (
-                    <Text style={styles.errorText}>⚠️ Defect Detected!</Text>
+                    <Text style={styles.errorText}>⚠️ {defects.length} Defects Found</Text>
                 ) : (
-                    <Text style={styles.successText}>✅ No Defect Detected (Good Fabric)</Text>
+                    <Text style={styles.successText}>✅ No Defect Detected</Text>
                 )}
             </View>
 
-            <View style={styles.imagesContainer}>
-                <View style={styles.imageBox}>
-                    <Text style={styles.imageLabel}>Original uploaded:</Text>
-                    <Image source={{ uri: originalImage }} style={styles.image} />
-                </View>
-
-                {resultImageBase64 && (
+            {!isHistory && originalImage && (
+                <View style={styles.imagesContainer}>
                     <View style={styles.imageBox}>
-                        <Text style={styles.imageLabel}>Analysis result:</Text>
-                        <Image source={{ uri: resultImageBase64 }} style={styles.image} />
+                        <Text style={styles.imageLabel}>Original uploaded:</Text>
+                        <Image source={{ uri: originalImage }} style={styles.image} />
                     </View>
-                )}
-            </View>
 
-            {hasDefects && (
-                <View style={styles.defectsList}>
-                    <Text style={styles.listTitle}>Defects Summary:</Text>
-                    {defects.map((defect, index) => (
-                        <View key={index} style={styles.defectItem}>
-                            <Text style={styles.defectName}>{defect.name}</Text>
-                            <Text style={styles.defectConf}>Confidence: {(defect.confidence * 100).toFixed(1)}%</Text>
+                    {resultImageBase64 && (
+                        <View style={styles.imageBox}>
+                            <Text style={styles.imageLabel}>Analysis result:</Text>
+                            <Image source={{ uri: resultImageBase64 }} style={styles.image} />
                         </View>
-                    ))}
+                    )}
                 </View>
             )}
+
+            <View style={styles.defectsList}>
+                <Text style={styles.listTitle}>{isHistory ? 'Complete History Log:' : 'Defects Summary:'}</Text>
+                {defects.length > 0 ? (
+                    defects.map((defect, index) => (
+                        <View key={index} style={styles.defectItem}>
+                            <View>
+                                <Text style={styles.defectName}>{defect.name}</Text>
+                                {isHistory && <Text style={styles.defectTime}>{defect.time}</Text>}
+                            </View>
+                            <Text style={styles.defectConf}>{(defect.confidence * 100).toFixed(0)}%</Text>
+                        </View>
+                    ))
+                ) : (
+                    <Text style={styles.emptyText}>Nothing to show.</Text>
+                )}
+            </View>
         </ScrollView>
     );
 }
@@ -143,8 +151,14 @@ const styles = StyleSheet.create({
         color: '#C53030',
         textTransform: 'capitalize',
     },
-    defectConf: {
-        fontSize: 16,
-        color: '#742A2A',
+    defectTime: {
+        fontSize: 12,
+        color: '#718096',
+        marginTop: 2,
+    },
+    emptyText: {
+        textAlign: 'center',
+        padding: 20,
+        color: '#A0AEC0',
     }
 });

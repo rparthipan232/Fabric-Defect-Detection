@@ -1,0 +1,12 @@
+venv/
+node_modules/
+__pycache__/
+.env
+.expo/
+static/uploads/*
+static/results/*.jpg
+static/results/*.png
+!static/uploads/.gitkeep
+!static/results/.gitkeep
+*.pyc
+.DS_Store

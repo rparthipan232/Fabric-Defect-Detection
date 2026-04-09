@@ -6,3 +6,12 @@ opencv-python-headless
 numpy
 pandas
 pydantic
+motor
+pymongo[srv]
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+email-validator
+certifi
+gunicorn
+uvicorn
